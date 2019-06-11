@@ -82,6 +82,18 @@ static int always_copy_stacks = 1;
 static int always_copy_stacks = 0;
 #endif
 
+#ifdef JL_ASAN_ENABLED
+void sanitizer_start_switch_fiber(jl_task_t *task) {
+    __sanitizer_start_switch_fiber(&task->fakestack, task->stkbuf, task->bufsz);
+}
+void sanitizer_finish_switch_fiber(jl_task_t *task) {
+    __sanitizer_finish_switch_fiber(task->fakestack, NULL, NULL);
+}
+#else
+#define sanitizer_start_switch_fiber(task)
+#define sanitizer_finish_switch_fiber(task)
+#endif
+
 #ifdef COPY_STACKS
 
 static void memcpy_a16(uint64_t *to, uint64_t *from, size_t nb)
