@@ -62,6 +62,14 @@
 #  define JL_THREAD_LOCAL
 #endif
 
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define JL_ASAN_ENABLED     // Clang flavor
+#endif
+#elif defined(__SANITIZE_ADDRESS__)
+#define JL_ASAN_ENABLED     // GCC flavor
+#endif
+
 #define container_of(ptr, type, member) \
     ((type *) ((char *)(ptr) - offsetof(type, member)))
 
@@ -1681,6 +1689,9 @@ typedef struct _jl_task_t {
     size_t bufsz; // actual sizeof stkbuf
     unsigned int copy_stack:31; // sizeof stack for copybuf
     unsigned int started:1;
+#ifdef JL_ASAN_ENABLED
+    void *fakestack;
+#endif
 
     // current exception handler
     jl_handler_t *eh;
