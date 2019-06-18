@@ -285,14 +285,57 @@ function seed!(r::MersenneTwister, seed::Vector{UInt32})
     return r
 end
 
-seed!(r::MersenneTwister=GLOBAL_RNG) = seed!(r, make_seed())
+seed!(r::MersenneTwister=get_local_rng()) = seed!(r, make_seed())
 seed!(r::MersenneTwister, n::Integer) = seed!(r, make_seed(n))
-seed!(seed::Union{Integer,Vector{UInt32}}) = seed!(GLOBAL_RNG, seed)
+seed!(seed::Union{Integer,Vector{UInt32}}) = seed!(get_local_rng(), seed)
 
 
-### Global RNG (must be defined after seed!)
+### Global RNG
 
-const GLOBAL_RNG = MersenneTwister(0)
+const THREAD_RNGs = MersenneTwister[]
+@inline get_local_rng() = get_local_rng(Threads.threadid())
+@noinline Base.@pure function get_local_rng(tid::Int)
+    #tls = task_local_storage()
+    #RNG = get(tls, :RNG, nothing)
+    #RNG isa MersenneTwister && return RNG
+    if length(THREAD_RNGs) < tid
+        resize!(THREAD_RNGs, Threads.nthreads())
+    end
+    if @inbounds isassigned(THREAD_RNGs, tid)
+        @inbounds MT = THREAD_RNGs[tid]
+    else
+        MT = MersenneTwister()
+        @inbounds THREAD_RNGs[tid] = MT
+    end
+    return MT
+end
+__init__() = empty!(THREAD_RNGs) # ensures that we didn't save a bad object
+
+
+#struct _GLOBAL_RNG <: AbstractRNG
+#    global const GLOBAL_RNG = _GLOBAL_RNG.instance
+#end
+#function seed!(r::_GLOBAL_RNG, seed=nothing)
+#    RNG = get!(MersenneTwister(0), task_local_storage(), :RNG)
+#    seed!(RNG, seed)
+#    return RNG
+#end
+#copy(r::_GLOBAL_RNG) = copy(get_local_rng())
+#rand
+#randn
+#randn!
+#randexp
+#randexp!
+#randstring
+#bitrand
+#Sampler
+#randsubseq!
+#shuffle
+#shuffle!
+#randperm
+#randperm!
+#randcycle
+#randcycle!
 
 
 ### generation

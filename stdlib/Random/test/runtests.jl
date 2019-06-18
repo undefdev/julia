@@ -601,7 +601,7 @@ end
 
 # Random.seed!(rng, ...) returns rng (#21248)
 guardseed() do
-    g = Random.GLOBAL_RNG
+    g = Random.get_local_rng()
     m = MersenneTwister(0)
     @test Random.seed!() === g
     @test Random.seed!(rand(UInt)) === g
